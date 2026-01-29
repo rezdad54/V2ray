@@ -80,19 +80,46 @@ def filter_for_protocols(data, protocols):
                         seen_configs.add(line)
     return filtered_data
 
-# Function to add tracking information to configs
-def add_tracking_info(configs):
-    """Add tracking information to each config"""
+# Function to add tracking information to configs (only if they have "#" at the end)
+def add_tracking_info(configs, start_number=1):
+    """Add tracking information to each config that already has '#' at the end"""
     tracked_configs = []
     for i, config in enumerate(configs):
         # Skip comment lines
         if config.startswith('#'):
             tracked_configs.append(config)
         else:
-            # Add tracking info: #@V2rays_hub: (config number)
-            tracked_config = f"{config}#@V2rays_hub: {i+1}"
-            tracked_configs.append(tracked_config)
+            # Only add tracking info if the config already has "#" at the end
+            if '#' in config and not config.startswith('#'):
+                # Add tracking info: #@V2rayshub: (config number)
+                tracked_config = f"{config}#@V2rayshub: {start_number + i}"
+                tracked_configs.append(tracked_config)
+            else:
+                # Keep config as-is if it doesn't have "#" at the end
+                tracked_configs.append(config)
     return tracked_configs
+
+# Function to get the next available config number
+def get_next_config_number(output_folder):
+    """Get the next available config number by reading existing configs"""
+    config_number_file = os.path.join(output_folder, ".next_config_number")
+    next_number = 1
+    
+    if os.path.exists(config_number_file):
+        try:
+            with open(config_number_file, "r") as f:
+                next_number = int(f.read().strip())
+        except:
+            next_number = 1
+    
+    return next_number
+
+# Function to save the next config number
+def save_next_config_number(output_folder, next_number):
+    """Save the next config number for future runs"""
+    config_number_file = os.path.join(output_folder, ".next_config_number")
+    with open(config_number_file, "w") as f:
+        f.write(str(next_number))
 
 
 
@@ -286,8 +313,8 @@ def main():
                         line = line.strip()
                         if line and not line.startswith('#'):
                             # Remove tracking info for comparison
-                            if '#@V2rays_hub:' in line:
-                                line = line.split('#@V2rays_hub:')[0].strip()
+                            if '#@V2rayshub:' in line:
+                                line = line.split('#@V2rayshub:')[0].strip()
                             previous_configs.add(line)
             except:
                 previous_configs = set()
@@ -308,8 +335,8 @@ def main():
                     if line and not line.startswith('#'):
                         # Remove tracking info for comparison
                         clean_line = line
-                        if '#@V2rays_hub:' in line:
-                            clean_line = line.split('#@V2rays_hub:')[0].strip()
+                        if '#@V2rayshub:' in line:
+                            clean_line = line.split('#@V2rayshub:')[0].strip()
                         
                         if clean_line not in previous_configs:
                             new_configs.append(line)
@@ -318,11 +345,17 @@ def main():
             print(f"Found {len(new_configs)} new configs out of {len(config_lines)} total configs")
             
             if new_configs:
-                # Add tracking information to new configs
-                tracked_configs = add_tracking_info(new_configs)
+                # Get next config number for unique numbering across runs
+                next_config_number = get_next_config_number(output_folder)
+                
+                # Add tracking information to new configs with unique numbering
+                tracked_configs = add_tracking_info(new_configs, next_config_number)
                 
                 # Post only new configs
                 telegram_bot.post_individual_configs(tracked_configs)
+                
+                # Save the next config number for future runs
+                save_next_config_number(output_folder, next_config_number + len(new_configs))
             else:
                 print("No new configs to post")
             

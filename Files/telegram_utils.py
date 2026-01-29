@@ -156,7 +156,7 @@ class TelegramBot:
 🔢 *Config Number:* #{index}
 📢 *Telegram Channel:* @V2rays_hub
 
-#V2ray #Config #{protocol} #{index} #@V2rays_hub: {index}"""
+#V2ray #Config #{protocol} #{index}"""
         
         # Determine protocol
         protocol = "Unknown"
