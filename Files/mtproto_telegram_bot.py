@@ -139,12 +139,15 @@ class MTProtoTelegramBot:
     
     def format_individual_proxy(self, proxy: str, index: int, total: int) -> str:
         """Format an individual MTProto proxy message"""
-        template = """🔗 *MTProto Proxy #{index} of {total}*
+        # Clean the proxy string to remove problematic characters for Markdown
+        clean_proxy = proxy.replace('`', '\\`').replace('*', '\\*').replace('_', '\\_')
+        
+        template = """🔗 MTProto Proxy #{index}
 
 `{proxy}`
 
-⏰ *Posted:* {timestamp}
-📢 *Telegram Channel:* @MTProto_Proxies
+⏰ Posted: {timestamp}
+📢 Telegram Channel: @MTProtoProxieshub
 
 #MTProto #Proxy #{index}"""
         
@@ -153,7 +156,7 @@ class MTProtoTelegramBot:
         return template.format(
             index=index,
             total=total,
-            proxy=proxy,
+            proxy=clean_proxy,
             timestamp=timestamp
         )
     

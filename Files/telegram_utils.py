@@ -147,14 +147,17 @@ class TelegramBot:
     
     def format_individual_config(self, config: str, index: int, total: int) -> str:
         """Format an individual config message"""
-        template = """🔗 *Config #{index} of {total}*
+        # Clean the config string to remove problematic characters for Markdown
+        clean_config = config.replace('`', '\\`').replace('*', '\\*').replace('_', '\\_')
+        
+        template = """🔗 Config #{index}
 
 `{config}`
 
-📊 *Protocol:* {protocol}
-⏰ *Posted:* {timestamp}
-🔢 *Config Number:* #{index}
-📢 *Telegram Channel:* @V2rays_hub
+📊 Protocol: {protocol}
+⏰ Posted: {timestamp}
+🔢 Config Number: #{index}
+📢 Telegram Channel: @V2rayshub
 
 #V2ray #Config #{protocol} #{index}"""
         
@@ -180,7 +183,7 @@ class TelegramBot:
         return template.format(
             index=index,
             total=total,
-            config=config,
+            config=clean_config,
             protocol=protocol,
             timestamp=timestamp
         )
