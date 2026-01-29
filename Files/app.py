@@ -249,26 +249,28 @@ def main():
         print("Writing main config file...")
         output_filename = os.path.join(output_folder, "All_Configs_Sub.txt")
         
-        # Get the next config number for tracking
+        # Get the next config number for tracking (for Telegram posting only)
         next_config_number = get_next_config_number(output_folder)
         
-        # Add tracking info to new configs
-        tracked_new_configs = add_tracking_info(new_configs, next_config_number)
-        
-        # Save the updated config number
-        save_next_config_number(output_folder, next_config_number + len(new_configs))
-        
-        # Write all configs (existing + new with tracking)
+        # Write all configs (existing + new WITHOUT tracking info)
         with open(output_filename, "w", encoding="utf-8") as f:
             f.write(fixed_text)
             
-            # Write existing configs first (preserve their order and tracking)
+            # Write existing configs first (preserve their order)
             for line in existing_config_lines:
-                f.write(line + "\n")
+                # Remove tracking info when saving to file
+                clean_line = line
+                if '#@V2rayshub:' in line:
+                    clean_line = line.split('#@V2rayshub:')[0].strip()
+                f.write(clean_line + "\n")
             
-            # Write new configs with tracking
-            for config in tracked_new_configs:
-                f.write(config + "\n")
+            # Write new configs WITHOUT tracking info
+            for config in new_configs:
+                # Remove tracking info when saving to file
+                clean_config = config
+                if '#@V2rayshub:' in config:
+                    clean_config = config.split('#@V2rayshub:')[0].strip()
+                f.write(clean_config + "\n")
         
         print(f"Main config file updated: {output_filename}")
 
@@ -379,17 +381,7 @@ def main():
             new_configs = []
             for line in current_config_lines:
                 if line not in previous_configs:
-                    # Find the original line with tracking info for posting
-                    with open(output_filename, "r", encoding="utf-8") as f:
-                        for original_line in f:
-                            original_line = original_line.strip()
-                            if original_line and not original_line.startswith('#'):
-                                clean_original = original_line
-                                if '#@V2rayshub:' in original_line:
-                                    clean_original = original_line.split('#@V2rayshub:')[0].strip()
-                                if clean_original == line:
-                                    new_configs.append(original_line)
-                                    break
+                    new_configs.append(line)
             
             print(f"Found {len(new_configs)} new configs out of {current_config_count} total configs")
             
