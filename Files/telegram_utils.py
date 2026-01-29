@@ -5,6 +5,7 @@ import telegram_config
 import os
 import datetime
 import json
+import asyncio
 from typing import Dict, Any, Optional
 
 class TelegramBot:
@@ -37,20 +38,43 @@ class TelegramBot:
             return False
             
         try:
-            self.bot.send_message(
-                chat_id=self.channel_id,
-                text=message,
-                parse_mode=parse_mode,
-                disable_web_page_preview=True
-            )
-            print("✅ Message sent to Telegram channel")
-            return True
-        except TelegramError as e:
-            print(f"❌ Failed to send Telegram message: {e}")
-            return False
+            # Use asyncio to run the async function
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(self._send_message_async(message, parse_mode))
+            loop.close()
+            return result
         except Exception as e:
             print(f"❌ Unexpected error sending Telegram message: {e}")
             return False
+    
+    async def _send_message_async(self, message: str, parse_mode: str = "Markdown") -> bool:
+        """Async method to send message"""
+        max_retries = 3
+        retry_delay = 5  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                await self.bot.send_message(
+                    chat_id=self.channel_id,
+                    text=message,
+                    parse_mode=parse_mode,
+                    disable_web_page_preview=True
+                )
+                print("✅ Message sent to Telegram channel")
+                return True
+            except TelegramError as e:
+                print(f"❌ Attempt {attempt + 1}/{max_retries} failed: {e}")
+                if attempt < max_retries - 1:
+                    print(f"🔄 Retrying in {retry_delay} seconds...")
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    print("❌ All retry attempts failed")
+                    return False
+            except Exception as e:
+                print(f"❌ Unexpected error: {e}")
+                return False
     
     def format_update_message(self, stats: Dict[str, Any]) -> str:
         """Format the update message using the template"""
