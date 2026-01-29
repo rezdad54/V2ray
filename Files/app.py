@@ -229,14 +229,39 @@ def main():
         print(f"  - {num_files} split files (Sub1.txt to Sub{num_files}.txt)")
         print(f"  - {num_files} base64 split files (Sub1_base64.txt to Sub{num_files}_base64.txt)")
         
-        # Analyze config statistics and post to Telegram
-        print("Analyzing config statistics...")
-        stats = analyze_config_stats(output_filename)
-        print(f"Config analysis: {stats}")
+        # Check if there are new configs by comparing with previous run
+        previous_config_count = 0
+        config_count_file = os.path.join(output_folder, ".previous_config_count")
         
-        # Post success message to Telegram
-        print("Posting update to Telegram...")
-        telegram_bot.post_success_update(stats)
+        # Read previous config count if exists
+        if os.path.exists(config_count_file):
+            try:
+                with open(config_count_file, "r") as f:
+                    previous_config_count = int(f.read().strip())
+            except:
+                previous_config_count = 0
+        
+        current_config_count = len(merged_configs)
+        
+        # Only send Telegram message if there are new configs or significant change
+        if current_config_count > previous_config_count or abs(current_config_count - previous_config_count) > 10:
+            # Analyze config statistics and post to Telegram
+            print("Analyzing config statistics...")
+            stats = analyze_config_stats(output_filename)
+            print(f"Config analysis: {stats}")
+            
+            # Post success message to Telegram
+            print("Posting update to Telegram...")
+            telegram_bot.post_success_update(stats)
+            
+            # Save current config count for next comparison
+            with open(config_count_file, "w") as f:
+                f.write(str(current_config_count))
+            print(f"Saved config count: {current_config_count}")
+        else:
+            print(f"No significant config changes detected. Current: {current_config_count}, Previous: {previous_config_count}")
+            print("Skipping Telegram notification.")
+        
         success = True
         
     except Exception as e:
