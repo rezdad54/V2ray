@@ -83,10 +83,6 @@ class TelegramBot:
         # Format timestamp
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
         
-        # Calculate next update time (12 minutes from now)
-        next_update = datetime.datetime.now() + datetime.timedelta(minutes=12)
-        next_update_time = next_update.strftime("%H:%M UTC")
-        
         # Generate protocol breakdown
         protocols_breakdown = ""
         if "protocols" in stats:
@@ -104,27 +100,88 @@ class TelegramBot:
             timestamp=timestamp,
             main_file_url=main_file_url,
             base64_file_url=base64_file_url,
-            protocols_breakdown=protocols_breakdown,
-            next_update_time=next_update_time
+            protocols_breakdown=protocols_breakdown
         )
     
     def format_error_message(self, error_message: str) -> str:
         """Format the error message using the template"""
         template = self.config["templates"]["error_message"]
         
-        # Calculate next update time (12 minutes from now)
-        next_update = datetime.datetime.now() + datetime.timedelta(minutes=12)
-        next_update_time = next_update.strftime("%H:%M UTC")
-        
         return template.format(
-            error_message=error_message,
-            next_update_time=next_update_time
+            error_message=error_message
         )
     
     def post_success_update(self, stats: Dict[str, Any]) -> bool:
         """Post a success update message to Telegram"""
         message = self.format_update_message(stats)
         return self.send_message(message)
+    
+    def post_individual_configs(self, configs: list) -> bool:
+        """Post each config as a separate Telegram message"""
+        if not self.initialize_bot():
+            return False
+            
+        if not configs:
+            print("⚠️ No configs to post")
+            return False
+            
+        print(f"📤 Posting {len(configs)} individual configs to Telegram...")
+        
+        success_count = 0
+        for i, config in enumerate(configs):
+            try:
+                # Format individual config message
+                message = self.format_individual_config(config, i+1, len(configs))
+                if self.send_message(message):
+                    success_count += 1
+                
+                # Add delay between posts to avoid rate limiting
+                import time
+                time.sleep(1)
+                
+            except Exception as e:
+                print(f"❌ Failed to post config {i+1}: {e}")
+        
+        print(f"✅ Successfully posted {success_count}/{len(configs)} configs")
+        return success_count > 0
+    
+    def format_individual_config(self, config: str, index: int, total: int) -> str:
+        """Format an individual config message"""
+        template = """🔗 *Config #{index} of {total}*
+
+`{config}`
+
+📊 *Protocol:* {protocol}
+⏰ *Posted:* {timestamp}
+
+#V2ray #Config #{protocol} #{index}"""
+        
+        # Determine protocol
+        protocol = "Unknown"
+        if config.startswith("vmess://"):
+            protocol = "VMESS"
+        elif config.startswith("vless://"):
+            protocol = "VLESS"
+        elif config.startswith("trojan://"):
+            protocol = "TROJAN"
+        elif config.startswith("ss://"):
+            protocol = "SS"
+        elif config.startswith("ssr://"):
+            protocol = "SSR"
+        elif config.startswith("hy2://"):
+            protocol = "HY2"
+        elif config.startswith("tuic://"):
+            protocol = "TUIC"
+        
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+        
+        return template.format(
+            index=index,
+            total=total,
+            config=config,
+            protocol=protocol,
+            timestamp=timestamp
+        )
     
     def post_error_update(self, error_message: str) -> bool:
         """Post an error message to Telegram"""

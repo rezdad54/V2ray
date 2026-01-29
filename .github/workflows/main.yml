@@ -44,7 +44,6 @@ jobs:
         author_email: "actions@github.com"
         message: "Updated 11 minutes Ago🤝"
         add: "."
-        pull: "NO-PULL"
         push: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

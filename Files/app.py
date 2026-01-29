@@ -5,6 +5,7 @@ import binascii
 import os
 import traceback
 from telegram_utils import TelegramBot, analyze_config_stats
+from telegram_scraper import scrape_telegram_channels_sync
 
 # Define a fixed timeout for HTTP requests
 TIMEOUT = 15  # seconds
@@ -158,8 +159,23 @@ def main():
         decoded_dir_links = decode_dir_links(dir_links)
         print(f"Decoded {len(decoded_dir_links)} direct text sources")
 
+        # Scrape configs from Telegram channels
+        print("Scraping configs from Telegram channels...")
+        telegram_channels = [
+            "NetAccount",  # Channel to scrape configs from
+            # Add more Telegram channels here
+        ]
+        
+        telegram_configs = scrape_telegram_channels_sync(telegram_channels, limit_per_channel=20)
+        telegram_config_lines = []
+        
+        for config in telegram_configs:
+            telegram_config_lines.append(config)
+        
+        print(f"Scraped {len(telegram_configs)} configs from Telegram channels")
+
         print("Combining and filtering configs...")
-        combined_data = decoded_links + decoded_dir_links
+        combined_data = decoded_links + decoded_dir_links + telegram_config_lines
         merged_configs = filter_for_protocols(combined_data, protocols)
         print(f"Found {len(merged_configs)} unique configs after filtering")
 
@@ -245,13 +261,26 @@ def main():
         
         # Only send Telegram message if there are new configs or significant change
         if current_config_count > previous_config_count or abs(current_config_count - previous_config_count) > 1:
-            # Analyze config statistics and post to Telegram
+            # Post individual configs to Telegram
+            print("Posting individual configs to Telegram...")
+            
+            # Extract config lines (non-comment lines)
+            config_lines = []
+            with open(output_filename, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        config_lines.append(line)
+            
+            # Post individual configs
+            telegram_bot.post_individual_configs(config_lines)
+            
+            # Also post a summary message
             print("Analyzing config statistics...")
             stats = analyze_config_stats(output_filename)
             print(f"Config analysis: {stats}")
             
-            # Post success message to Telegram
-            print("Posting update to Telegram...")
+            print("Posting summary to Telegram...")
             telegram_bot.post_success_update(stats)
             
             # Save current config count for next comparison

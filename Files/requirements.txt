@@ -1,3 +1,4 @@
 pybase64
 requests
 python-telegram-bot
+beautifulsoup4
