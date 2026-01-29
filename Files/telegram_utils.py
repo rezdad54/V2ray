@@ -147,42 +147,46 @@ class TelegramBot:
     
     def format_individual_config(self, config: str, index: int, total: int) -> str:
         """Format an individual config message"""
-        # Clean the config string to remove problematic characters for Markdown
-        clean_config = config.replace('`', '\\`').replace('*', '\\*').replace('_', '\\_')
+        # Extract config ID from the end of the config (after #@V2rayshub:)
+        config_id = "Unknown"
+        if '#@V2rayshub:' in config:
+            config_id = config.split('#@V2rayshub:')[1].strip()
         
-        template = """🔗 Config #{index}
-
-`{config}`
-
-📊 Protocol: {protocol}
-⏰ Posted: {timestamp}
-🔢 Config Number: #{index}
-📢 Telegram Channel: @V2rayshub
-
-#V2ray #Config #{protocol} #{index}"""
+        # Extract the actual config without the tracking info
+        clean_config = config.split('#@V2rayshub:')[0].strip() if '#@V2rayshub:' in config else config
         
         # Determine protocol
         protocol = "Unknown"
-        if config.startswith("vmess://"):
+        if clean_config.startswith("vmess://"):
             protocol = "VMESS"
-        elif config.startswith("vless://"):
+        elif clean_config.startswith("vless://"):
             protocol = "VLESS"
-        elif config.startswith("trojan://"):
+        elif clean_config.startswith("trojan://"):
             protocol = "TROJAN"
-        elif config.startswith("ss://"):
+        elif clean_config.startswith("ss://"):
             protocol = "SS"
-        elif config.startswith("ssr://"):
+        elif clean_config.startswith("ssr://"):
             protocol = "SSR"
-        elif config.startswith("hy2://"):
+        elif clean_config.startswith("hy2://"):
             protocol = "HY2"
-        elif config.startswith("tuic://"):
+        elif clean_config.startswith("tuic://"):
             protocol = "TUIC"
+        
+        template = """🔗 Config #{config_id}
+
+{config}
+
+📊 Protocol: {protocol}
+⏰ Posted: {timestamp}
+🔢 Config ID: #{config_id}
+📢 Telegram Channel: @V2rayshub
+
+#V2ray #Config #{protocol} #{config_id}"""
         
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
         
         return template.format(
-            index=index,
-            total=total,
+            config_id=config_id,
             config=clean_config,
             protocol=protocol,
             timestamp=timestamp
