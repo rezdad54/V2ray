@@ -6,6 +6,8 @@ import os
 import traceback
 from telegram_utils import TelegramBot, analyze_config_stats
 from telegram_scraper import scrape_telegram_channels_sync
+from mtproto_scraper import scrape_all_mtproto_proxies
+from mtproto_telegram_bot import MTProtoTelegramBot, analyze_mtproto_stats
 
 # Define a fixed timeout for HTTP requests
 TIMEOUT = 15  # seconds
@@ -144,27 +146,28 @@ def main():
     try:
         output_folder, base64_folder = ensure_directories_exist()  # Ensure directories are created
 
-        # Clean existing output files FIRST before processing
-        print("Cleaning existing files...")
+        # Read existing configs FIRST before processing
+        print("Reading existing configs...")
         output_filename = os.path.join(output_folder, "All_Configs_Sub.txt")
         main_base64_filename = os.path.join(output_folder, "All_Configs_base64_Sub.txt")
         
+        existing_configs = set()
+        existing_config_lines = []
+        
         if os.path.exists(output_filename):
-            os.remove(output_filename)
-            print(f"Removed: {output_filename}")
-        if os.path.exists(main_base64_filename):
-            os.remove(main_base64_filename)
-            print(f"Removed: {main_base64_filename}")
-
-        for i in range(1, 21):  # Clean Sub1.txt to Sub20.txt
-            filename = os.path.join(output_folder, f"Sub{i}.txt")
-            if os.path.exists(filename):
-                os.remove(filename)
-                print(f"Removed: {filename}")
-            filename_base64 = os.path.join(base64_folder, f"Sub{i}_base64.txt")
-            if os.path.exists(filename_base64):
-                os.remove(filename_base64)
-                print(f"Removed: {filename_base64}")
+            with open(output_filename, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        # Remove tracking info for comparison
+                        clean_line = line
+                        if '#@V2rayshub:' in line:
+                            clean_line = line.split('#@V2rayshub:')[0].strip()
+                        existing_configs.add(clean_line)
+                        existing_config_lines.append(line)
+            print(f"Found {len(existing_configs)} existing configs")
+        else:
+            print("No existing config file found, starting fresh")
 
         print("Starting to fetch and process configs...")
     
@@ -226,14 +229,48 @@ def main():
         merged_configs = filter_for_protocols(combined_data, protocols)
         print(f"Found {len(merged_configs)} unique configs after filtering")
 
-        # Write merged configs to output file
+        # Identify new configs that aren't in existing files
+        new_configs = []
+        for config in merged_configs:
+            # Skip comment lines
+            if config.startswith('#'):
+                continue
+            # Remove tracking info for comparison
+            clean_config = config
+            if '#@V2rayshub:' in config:
+                clean_config = config.split('#@V2rayshub:')[0].strip()
+            
+            if clean_config not in existing_configs:
+                new_configs.append(config)
+        
+        print(f"Found {len(new_configs)} new configs out of {len(merged_configs)} total configs")
+
+        # Write configs to output file (preserve existing + add new)
         print("Writing main config file...")
         output_filename = os.path.join(output_folder, "All_Configs_Sub.txt")
+        
+        # Get the next config number for tracking
+        next_config_number = get_next_config_number(output_folder)
+        
+        # Add tracking info to new configs
+        tracked_new_configs = add_tracking_info(new_configs, next_config_number)
+        
+        # Save the updated config number
+        save_next_config_number(output_folder, next_config_number + len(new_configs))
+        
+        # Write all configs (existing + new with tracking)
         with open(output_filename, "w", encoding="utf-8") as f:
             f.write(fixed_text)
-            for config in merged_configs:
+            
+            # Write existing configs first (preserve their order and tracking)
+            for line in existing_config_lines:
+                f.write(line + "\n")
+            
+            # Write new configs with tracking
+            for config in tracked_new_configs:
                 f.write(config + "\n")
-        print(f"Main config file created: {output_filename}")
+        
+        print(f"Main config file updated: {output_filename}")
 
         # Create base64 version of the main file
         print("Creating base64 version...")
@@ -379,6 +416,83 @@ def main():
         else:
             print(f"No significant config changes detected. Current: {current_config_count}, Previous: {previous_config_count}")
             print("Skipping Telegram notification.")
+        
+        # Process MTProto proxies
+        print("\n🔄 Starting MTProto proxy processing...")
+        mtproto_bot = MTProtoTelegramBot()
+        
+        try:
+            # Scrape MTProto proxies
+            mtproto_results = scrape_all_mtproto_proxies(output_folder)
+            
+            # Check if there are new MTProto proxies by comparing with previous run
+            mtproto_previous_count = 0
+            mtproto_count_file = os.path.join(output_folder, ".previous_mtproto_count")
+            mtproto_previous_proxies_file = os.path.join(output_folder, ".previous_mtproto_proxies.txt")
+            
+            # Read previous MTProto proxy count and proxies if exists
+            mtproto_previous_proxies = set()
+            if os.path.exists(mtproto_count_file):
+                try:
+                    with open(mtproto_count_file, "r") as f:
+                        mtproto_previous_count = int(f.read().strip())
+                except:
+                    mtproto_previous_count = 0
+            
+            if os.path.exists(mtproto_previous_proxies_file):
+                try:
+                    with open(mtproto_previous_proxies_file, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith('#'):
+                                mtproto_previous_proxies.add(line)
+                except:
+                    mtproto_previous_proxies = set()
+            
+            mtproto_current_count = mtproto_results["total_proxies"]
+            
+            # Only send MTProto Telegram message if there are new proxies or significant change
+            if mtproto_current_count > mtproto_previous_count or abs(mtproto_current_count - mtproto_previous_count) > 1:
+                print("Posting MTProto proxies to Telegram...")
+                
+                # Filter for new MTProto proxies
+                new_mtproto_proxies = []
+                for proxy in mtproto_results["proxies"]:
+                    if proxy not in mtproto_previous_proxies:
+                        new_mtproto_proxies.append(proxy)
+                
+                print(f"Found {len(new_mtproto_proxies)} new MTProto proxies out of {mtproto_current_count} total proxies")
+                
+                if new_mtproto_proxies:
+                    # Post new MTProto proxies
+                    mtproto_bot.post_individual_proxies(new_mtproto_proxies)
+                else:
+                    print("No new MTProto proxies to post")
+                
+                # Also post a summary message
+                print("Analyzing MTProto statistics...")
+                mtproto_stats = analyze_mtproto_stats(mtproto_results["output_file"])
+                print(f"MTProto analysis: {mtproto_stats}")
+                
+                print("Posting MTProto summary to Telegram...")
+                mtproto_bot.post_success_update(mtproto_stats)
+                
+                # Save current MTProto proxy count and proxies for next comparison
+                with open(mtproto_count_file, "w") as f:
+                    f.write(str(mtproto_current_count))
+                
+                with open(mtproto_previous_proxies_file, "w", encoding="utf-8") as f:
+                    for proxy in mtproto_results["proxies"]:
+                        f.write(proxy + "\n")
+                
+                print(f"Saved MTProto proxy count: {mtproto_current_count}")
+            else:
+                print(f"No significant MTProto proxy changes detected. Current: {mtproto_current_count}, Previous: {mtproto_previous_count}")
+                print("Skipping MTProto Telegram notification.")
+        
+        except Exception as e:
+            print(f"❌ MTProto processing error: {e}")
+            mtproto_bot.post_error_update(str(e))
         
         success = True
         

@@ -22,7 +22,8 @@ TELEGRAM_CONFIG = {
 📋 *Protocol Breakdown:*
 {protocols_breakdown}
 
-⏰ *Next Update:* {next_update_time}
+🔗 *Config Sources:*
+• Telegram: @V2rays_hub
 
 #V2ray #Proxy #Configs #Update
 """,
@@ -32,9 +33,50 @@ TELEGRAM_CONFIG = {
 ⚠️ Error occurred while fetching configs:
 {error_message}
 
-🔄 *Next Attempt:* {next_update_time}
+🔗 *Config Sources:*
+• Telegram: @V2rays_hub
 
 #V2ray #Error #UpdateFailed
+"""
+    },
+    
+    # Update schedule information (for message template)
+    "update_schedule": "Every 12 minutes",
+    
+    # GitHub repository URL for file links
+    "repo_url": "https://github.com/rezdad54/V2ray"
+}
+
+# MTProto Bot Configuration
+MTPROTO_CONFIG = {
+    # MTProto Telegram Bot Token (get from @BotFather)
+    "bot_token": "YOUR_MTPROTO_BOT_TOKEN_HERE",
+    
+    # MTProto Telegram Channel ID (e.g., @yourchannelname or channel ID)
+    "channel_id": "@YOUR_MTPROTO_CHANNEL_HERE",
+    
+    # Message templates
+    "templates": {
+        "update_message": """🔧 *MTProto Proxy Update* 🔧
+
+📊 *Statistics:*
+• Total Proxies: {total_proxies}
+• Website Proxies: {website_proxies}
+• Telegram Proxies: {telegram_proxies}
+• Last Updated: {timestamp}
+
+🔗 *Download Link:*
+• [MTProto Proxies File](https://github.com/rezdad54/V2ray/blob/main/MTProto_Proxies.txt)
+
+#MTProto #Proxy #Update
+""",
+        
+        "error_message": """❌ *MTProto Proxy Update Failed* ❌
+
+⚠️ Error occurred while fetching MTProto proxies:
+{error_message}
+
+#MTProto #Error #UpdateFailed
 """
     },
     

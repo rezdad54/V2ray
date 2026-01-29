@@ -33,6 +33,8 @@ jobs:
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        MTPROTO_BOT_TOKEN: ${{ secrets.MTPROTO_BOT_TOKEN }}
+        MTPROTO_CHANNEL_ID: ${{ secrets.MTPROTO_CHANNEL_ID }}
       run: |
         python app.py
         python sort.py

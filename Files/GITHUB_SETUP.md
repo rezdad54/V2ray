@@ -20,21 +20,37 @@ GitHub Secrets are encrypted environment variables that allow you to store sensi
 ### 1.2 Add Required Secrets
 Click **New repository secret** and add the following secrets:
 
+#### V2ray Config Bot Secrets
+
 #### TELEGRAM_BOT_TOKEN
 - **Name:** `TELEGRAM_BOT_TOKEN`
-- **Value:** Your Telegram bot token (from @BotFather)
+- **Value:** Your Telegram bot token for V2ray configs (from @BotFather)
 - Example: `1234567890:ABCdefGHIjklMNOpqrsTUVwxyz`
 
 #### TELEGRAM_CHANNEL_ID
 - **Name:** `TELEGRAM_CHANNEL_ID`
-- **Value:** Your Telegram channel ID (e.g., `@v2rays_hub`)
+- **Value:** Your Telegram channel ID for V2ray configs (e.g., `@v2rays_hub`)
+- Note: Include the `@` symbol if using channel username
+
+#### MTProto Proxy Bot Secrets
+
+#### MTPROTO_BOT_TOKEN
+- **Name:** `MTPROTO_BOT_TOKEN`
+- **Value:** Your Telegram bot token for MTProto proxies (from @BotFather)
+- Example: `9876543210:ZYXwvutsRQponmlkjIHGFEDCBA`
+
+#### MTPROTO_CHANNEL_ID
+- **Name:** `MTPROTO_CHANNEL_ID`
+- **Value:** Your Telegram channel ID for MTProto proxies (e.g., `@mtproto_proxies`)
 - Note: Include the `@` symbol if using channel username
 
 ### 1.3 Verify Secrets
-After adding both secrets, your repository secrets should look like this:
+After adding all secrets, your repository secrets should look like this:
 ```
 TELEGRAM_BOT_TOKEN: [hidden]
 TELEGRAM_CHANNEL_ID: [hidden]
+MTPROTO_BOT_TOKEN: [hidden]
+MTPROTO_CHANNEL_ID: [hidden]
 ```
 
 ## Step 2: Understanding the GitHub Actions Workflow
@@ -77,6 +93,8 @@ jobs:
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        MTPROTO_BOT_TOKEN: ${{ secrets.MTPROTO_BOT_TOKEN }}
+        MTPROTO_CHANNEL_ID: ${{ secrets.MTPROTO_CHANNEL_ID }}
       run: |
         python app.py
         python sort.py
