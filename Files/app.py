@@ -356,31 +356,40 @@ def main():
             except:
                 previous_configs = set()
         
-        # Count actual config lines (non-comment lines) for comparison
-        config_lines = []
+        # Count actual config lines (non-comment lines) for comparison - use the same cleaning logic
+        current_config_lines = []
         with open(output_filename, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#'):
-                    config_lines.append(line)
+                    # Remove tracking info for comparison (same as above)
+                    clean_line = line
+                    if '#@V2rayshub:' in line:
+                        clean_line = line.split('#@V2rayshub:')[0].strip()
+                    current_config_lines.append(clean_line)
         
-        current_config_count = len(config_lines)
+        current_config_count = len(current_config_lines)
         
         # Only send Telegram message if there are new configs or significant change
         if current_config_count > previous_config_count or abs(current_config_count - previous_config_count) > 1:
             # Post individual configs to Telegram
             print("Posting individual configs to Telegram...")
             
-            # Filter for new configs
+            # Filter for new configs - compare cleaned configs
             new_configs = []
-            for line in config_lines:
-                # Remove tracking info for comparison
-                clean_line = line
-                if '#@V2rayshub:' in line:
-                    clean_line = line.split('#@V2rayshub:')[0].strip()
-                
-                if clean_line not in previous_configs:
-                    new_configs.append(line)
+            for line in current_config_lines:
+                if line not in previous_configs:
+                    # Find the original line with tracking info for posting
+                    with open(output_filename, "r", encoding="utf-8") as f:
+                        for original_line in f:
+                            original_line = original_line.strip()
+                            if original_line and not original_line.startswith('#'):
+                                clean_original = original_line
+                                if '#@V2rayshub:' in original_line:
+                                    clean_original = original_line.split('#@V2rayshub:')[0].strip()
+                                if clean_original == line:
+                                    new_configs.append(original_line)
+                                    break
             
             print(f"Found {len(new_configs)} new configs out of {current_config_count} total configs")
             
@@ -412,8 +421,12 @@ def main():
                 f.write(str(current_config_count))
             
             with open(previous_configs_file, "w", encoding="utf-8") as f:
-                for config in config_lines:
+                for config in current_config_lines:
                     f.write(config + "\n")
+            
+            # Also update the .previous_config_count file to match current count
+            # This ensures next run will correctly identify no new configs
+            print(f"Updated previous config count to: {current_config_count}")
             
             print(f"Saved config count: {current_config_count}")
         else:
