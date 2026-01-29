@@ -37,7 +37,7 @@ class MTProtoTelegramBot:
             print(f"❌ Failed to initialize MTProto Telegram bot: {e}")
             return False
     
-    def send_message(self, message: str, parse_mode: str = "Markdown") -> bool:
+    def send_message(self, message: str, parse_mode: str = None) -> bool:
         """Send a message to the MTProto Telegram channel"""
         if not self.initialize_bot():
             return False
@@ -53,7 +53,7 @@ class MTProtoTelegramBot:
             print(f"❌ Unexpected error sending MTProto Telegram message: {e}")
             return False
     
-    async def _send_message_async(self, message: str, parse_mode: str = "Markdown") -> bool:
+    async def _send_message_async(self, message: str, parse_mode: str = None) -> bool:
         """Async method to send message"""
         max_retries = 3
         retry_delay = 5  # seconds
