@@ -1,123 +1,113 @@
 # Telegram Integration Setup Guide
 
-This guide will help you set up the Telegram bot integration for automatic posting of V2ray config updates to your Telegram channel.
+This guide will help you set up the Telegram integration for your V2ray Config Bot.
 
 ## Prerequisites
 
-1. A Telegram account
-2. A Telegram channel where you want to post updates
-3. BotFather access to create a bot
+- A Telegram account
+- A Telegram channel where the bot will post updates
+- Bot token from BotFather
 
-## Step-by-Step Setup
-
-### 1. Create a Telegram Bot
+## Step 1: Create a Telegram Bot
 
 1. Open Telegram and search for `@BotFather`
-2. Start a chat with BotFather
-3. Send `/newbot` command
-4. Follow the prompts to name your bot
-5. Copy the bot token provided by BotFather (it will look like `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
+2. Start a chat with BotFather and send `/newbot`
+3. Follow the prompts to:
+   - Choose a name for your bot (e.g., "V2ray Config Bot")
+   - Choose a username for your bot (must end with "bot", e.g., "v2rayconfigbot")
+4. BotFather will provide you with a bot token - save this token securely
 
-### 2. Create a Telegram Channel
+## Step 2: Create a Telegram Channel
 
 1. Open Telegram and click "New Channel"
-2. Set a name and description for your channel
-3. Make the channel public or private as preferred
-4. Note the channel username (e.g., `@myv2rayconfigs`) or get the channel ID
+2. Choose a name for your channel (e.g., "V2ray Config Updates")
+3. Set the channel to public or private as preferred
+4. Note the channel username (e.g., `@v2rays_hub`)
 
-### 3. Configure Bot Permissions
+## Step 3: Configure Bot Permissions
 
-1. Add your bot to the channel as an administrator
-2. Give the bot permission to post messages
+1. Add your bot to the channel as an administrator:
+   - Go to your channel settings
+   - Click "Administrators"
+   - Click "Add Admin"
+   - Search for your bot's username
+   - Grant the bot permission to "Post Messages"
 
-### 4. Configure GitHub Secrets
+## Step 4: Configure Environment Variables
 
-1. Go to your GitHub repository
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Add the following secrets:
+Create a `.env` file in the `Files` directory with the following content:
 
-**Secret Name:** `TELEGRAM_BOT_TOKEN`
-**Secret Value:** Your bot token from BotFather
+```bash
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHANNEL_ID=@your_channel_here
+```
 
-**Secret Name:** `TELEGRAM_CHANNEL_ID`
-**Secret Value:** Your channel username (e.g., `@myv2rayconfigs`) or channel ID
-
-### 5. Update Configuration (Optional)
-
-If you prefer to use environment variables instead of GitHub secrets, you can update the `telegram_config.py` file:
+Or update the `telegram_config.py` file directly:
 
 ```python
 TELEGRAM_CONFIG = {
-    "bot_token": "YOUR_ACTUAL_BOT_TOKEN",
-    "channel_id": "@YOUR_CHANNEL_USERNAME",
+    "bot_token": "your_bot_token_here",
+    "channel_id": "@your_channel_here",
     # ... rest of configuration
 }
 ```
 
-## Testing the Setup
+## Step 5: Test the Integration
 
-1. The GitHub Actions workflow will run automatically every 12 minutes
-2. After the first successful run, check your Telegram channel for the update message
-3. If no message appears, check the GitHub Actions logs for errors
+Run the test script to verify everything is working:
 
-## Message Template Customization
-
-You can customize the message templates in `telegram_config.py`:
-
-```python
-"templates": {
-    "update_message": """Your custom message template here...""",
-    "error_message": """Your custom error template here..."""
-}
+```bash
+cd Files
+source venv/bin/activate
+python -c "
+from telegram_utils import TelegramBot
+bot = TelegramBot()
+if bot.initialize_bot():
+    print('✅ Bot initialized successfully')
+    if bot.send_message('🔧 Test message from V2ray Config Bot'):
+        print('✅ Test message sent successfully!')
+    else:
+        print('❌ Failed to send test message')
+else:
+    print('❌ Bot initialization failed')
+"
 ```
 
-## Available Template Variables
+## Step 6: Configure GitHub Actions (Optional)
 
-### Success Message Variables:
-- `{total_configs}` - Total number of configs found
-- `{protocols_count}` - Number of different protocols
-- `{timestamp}` - Current timestamp
-- `{main_file_url}` - URL to main config file
-- `{base64_file_url}` - URL to base64 config file
-- `{protocols_breakdown}` - Breakdown of protocols with counts
-- `{next_update_time}` - Time of next scheduled update
+If you want the bot to run automatically via GitHub Actions, ensure your secrets are configured in the repository:
 
-### Error Message Variables:
-- `{error_message}` - Error description
-- `{next_update_time}` - Time of next scheduled update
+1. Go to your GitHub repository → Settings → Secrets and variables → Actions
+2. Add the following secrets:
+   - `TELEGRAM_BOT_TOKEN`: Your bot token
+   - `TELEGRAM_CHANNEL_ID`: Your channel ID (e.g., `@v2rays_hub`)
 
 ## Troubleshooting
 
-### Common Issues:
+### Common Issues
 
-1. **Bot token not working**
-   - Verify the token is correct
-   - Ensure the bot is active
+1. **"Bot is not a member of the chat"**
+   - Make sure the bot is added to the channel as an administrator
+   - Check that the channel username is correct
 
-2. **Channel access denied**
-   - Make sure the bot is added to the channel as admin
+2. **"Forbidden: bot can't send messages to bots"**
+   - Ensure the bot has permission to post messages in the channel
    - Check channel privacy settings
 
-3. **No messages posted**
-   - Check GitHub Actions logs for errors
-   - Verify secrets are correctly set
+3. **Network connectivity issues**
+   - The bot includes retry logic with exponential backoff
+   - Check your internet connection if messages fail
 
-4. **Markdown formatting issues**
-   - Ensure your message template uses valid Markdown syntax
-   - Avoid special characters that might break formatting
+4. **Message formatting issues**
+   - The bot uses Markdown formatting
+   - Ensure your message content doesn't contain invalid Markdown syntax
 
-## Security Notes
+## Features
 
-- Never commit your bot token or channel ID to the repository
-- Always use GitHub Secrets for sensitive information
-- Regularly rotate your bot token for security
+- ✅ Automatic posting of config updates to Telegram
+- ✅ Retry logic for network connectivity issues
+- ✅ Beautiful message templates with statistics
+- ✅ Error handling and error messages
+- ✅ Secure configuration (secrets removed from code)
 
-## Support
-
-If you encounter issues, check:
-- GitHub Actions workflow logs
-- Telegram bot status
-- Channel permissions
-
-For persistent issues, create an issue in the repository with detailed error information.
+The bot will automatically post updates every time the config files are updated via the GitHub Actions workflow.
