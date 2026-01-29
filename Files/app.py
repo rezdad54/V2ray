@@ -356,30 +356,33 @@ def main():
             except:
                 previous_configs = set()
         
-        current_config_count = len(merged_configs)
+        # Count actual config lines (non-comment lines) for comparison
+        config_lines = []
+        with open(output_filename, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    config_lines.append(line)
+        
+        current_config_count = len(config_lines)
         
         # Only send Telegram message if there are new configs or significant change
         if current_config_count > previous_config_count or abs(current_config_count - previous_config_count) > 1:
             # Post individual configs to Telegram
             print("Posting individual configs to Telegram...")
             
-            # Extract config lines (non-comment lines) and filter for new ones
-            config_lines = []
+            # Filter for new configs
             new_configs = []
-            with open(output_filename, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#'):
-                        # Remove tracking info for comparison
-                        clean_line = line
-                        if '#@V2rayshub:' in line:
-                            clean_line = line.split('#@V2rayshub:')[0].strip()
-                        
-                        if clean_line not in previous_configs:
-                            new_configs.append(line)
-                        config_lines.append(line)
+            for line in config_lines:
+                # Remove tracking info for comparison
+                clean_line = line
+                if '#@V2rayshub:' in line:
+                    clean_line = line.split('#@V2rayshub:')[0].strip()
+                
+                if clean_line not in previous_configs:
+                    new_configs.append(line)
             
-            print(f"Found {len(new_configs)} new configs out of {len(config_lines)} total configs")
+            print(f"Found {len(new_configs)} new configs out of {current_config_count} total configs")
             
             if new_configs:
                 # Get next config number for unique numbering across runs
