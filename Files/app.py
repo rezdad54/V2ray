@@ -268,14 +268,29 @@ def main():
         # Check if there are new configs by comparing with previous run
         previous_config_count = 0
         config_count_file = os.path.join(output_folder, ".previous_config_count")
+        previous_configs_file = os.path.join(output_folder, ".previous_configs.txt")
         
-        # Read previous config count if exists
+        # Read previous config count and configs if exists
+        previous_configs = set()
         if os.path.exists(config_count_file):
             try:
                 with open(config_count_file, "r") as f:
                     previous_config_count = int(f.read().strip())
             except:
                 previous_config_count = 0
+        
+        if os.path.exists(previous_configs_file):
+            try:
+                with open(previous_configs_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#'):
+                            # Remove tracking info for comparison
+                            if '#@V2rays_hub:' in line:
+                                line = line.split('#@V2rays_hub:')[0].strip()
+                            previous_configs.add(line)
+            except:
+                previous_configs = set()
         
         current_config_count = len(merged_configs)
         
@@ -284,19 +299,32 @@ def main():
             # Post individual configs to Telegram
             print("Posting individual configs to Telegram...")
             
-            # Extract config lines (non-comment lines)
+            # Extract config lines (non-comment lines) and filter for new ones
             config_lines = []
+            new_configs = []
             with open(output_filename, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith('#'):
+                        # Remove tracking info for comparison
+                        clean_line = line
+                        if '#@V2rays_hub:' in line:
+                            clean_line = line.split('#@V2rays_hub:')[0].strip()
+                        
+                        if clean_line not in previous_configs:
+                            new_configs.append(line)
                         config_lines.append(line)
             
-            # Add tracking information to configs
-            tracked_configs = add_tracking_info(config_lines)
+            print(f"Found {len(new_configs)} new configs out of {len(config_lines)} total configs")
             
-            # Post individual configs
-            telegram_bot.post_individual_configs(tracked_configs)
+            if new_configs:
+                # Add tracking information to new configs
+                tracked_configs = add_tracking_info(new_configs)
+                
+                # Post only new configs
+                telegram_bot.post_individual_configs(tracked_configs)
+            else:
+                print("No new configs to post")
             
             # Also post a summary message
             print("Analyzing config statistics...")
@@ -306,9 +334,14 @@ def main():
             print("Posting summary to Telegram...")
             telegram_bot.post_success_update(stats)
             
-            # Save current config count for next comparison
+            # Save current config count and configs for next comparison
             with open(config_count_file, "w") as f:
                 f.write(str(current_config_count))
+            
+            with open(previous_configs_file, "w", encoding="utf-8") as f:
+                for config in config_lines:
+                    f.write(config + "\n")
+            
             print(f"Saved config count: {current_config_count}")
         else:
             print(f"No significant config changes detected. Current: {current_config_count}, Previous: {previous_config_count}")
