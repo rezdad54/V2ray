@@ -244,7 +244,7 @@ def main():
         current_config_count = len(merged_configs)
         
         # Only send Telegram message if there are new configs or significant change
-        if current_config_count > previous_config_count or abs(current_config_count - previous_config_count) > 3:
+        if current_config_count > previous_config_count or abs(current_config_count - previous_config_count) > 1:
             # Analyze config statistics and post to Telegram
             print("Analyzing config statistics...")
             stats = analyze_config_stats(output_filename)
