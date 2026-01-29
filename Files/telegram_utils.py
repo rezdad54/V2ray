@@ -153,8 +153,10 @@ class TelegramBot:
 
 📊 *Protocol:* {protocol}
 ⏰ *Posted:* {timestamp}
+🔢 *Config Number:* #{index}
+📢 *Telegram Channel:* @V2rays_hub
 
-#V2ray #Config #{protocol} #{index}"""
+#V2ray #Config #{protocol} #{index} #@V2rays_hub: {index}"""
         
         # Determine protocol
         protocol = "Unknown"

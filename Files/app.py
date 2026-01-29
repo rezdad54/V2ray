@@ -69,10 +69,30 @@ def filter_for_protocols(data, protocols):
                     # Always keep comment/metadata/empty lines
                     filtered_data.append(line)
                 elif any(protocol in line for protocol in protocols):
+                    # Remove anything after "#" at the end of configs
+                    if '#' in line:
+                        # Split on the last "#" to remove comments
+                        parts = line.rsplit('#', 1)
+                        line = parts[0].strip()
+                    
                     if line not in seen_configs:
                         filtered_data.append(line)
                         seen_configs.add(line)
     return filtered_data
+
+# Function to add tracking information to configs
+def add_tracking_info(configs):
+    """Add tracking information to each config"""
+    tracked_configs = []
+    for i, config in enumerate(configs):
+        # Skip comment lines
+        if config.startswith('#'):
+            tracked_configs.append(config)
+        else:
+            # Add tracking info: #@V2rays_hub: (config number)
+            tracked_config = f"{config}#@V2rays_hub: {i+1}"
+            tracked_configs.append(tracked_config)
+    return tracked_configs
 
 
 
@@ -272,8 +292,11 @@ def main():
                     if line and not line.startswith('#'):
                         config_lines.append(line)
             
+            # Add tracking information to configs
+            tracked_configs = add_tracking_info(config_lines)
+            
             # Post individual configs
-            telegram_bot.post_individual_configs(config_lines)
+            telegram_bot.post_individual_configs(tracked_configs)
             
             # Also post a summary message
             print("Analyzing config statistics...")
